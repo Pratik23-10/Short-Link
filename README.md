@@ -1,68 +1,39 @@
 # ShortLink
 
-A simple URL shortener built with **Java, Spring Boot, Spring Data JPA,
-Hibernate, and PostgreSQL**.
+A simple and lightweight URL shortener built with **Java, Spring Boot, Spring Data JPA, Hibernate, and PostgreSQL**.
 
-ShortLink converts a long URL into a short, randomly generated Base62
-code. When the short URL is opened, the application finds the original
-URL and redirects the user to it.
-
-This version is intentionally kept simple so the core Spring Boot flow
-is easy to understand and extend later.
+ShortLink converts long URLs into short, randomly generated links that are easy to share. When a user opens a short link, the application looks up the original URL and redirects them to the destination.
 
 ## Features
 
--   Create short URLs from valid HTTP/HTTPS URLs
--   Generate random 6-character Base62 short codes
--   Check for short-code collisions before saving
--   Store URLs in PostgreSQL
--   Use Spring Data JPA / Hibernate for database access
--   Redirect short URLs using HTTP 302
--   Simple HTML, CSS, and JavaScript frontend
--   Docker support
--   No authentication or Spring Security for now
+- Create short URLs from valid HTTP/HTTPS links
+- Generate random 6-character Base62 short codes
+- Check for short-code collisions
+- Store URL mappings in PostgreSQL
+- Redirect short links using HTTP 302
+- Simple and responsive web interface
+- REST API
+- Docker and Docker Compose support
 
-## Features intentionally not included
+## Tech Stack
 
-The current version focuses on the core URL-shortening functionality.
-The following can be added later:
+- **Java**
+- **Spring Boot**
+- **Spring Web**
+- **Spring Data JPA**
+- **Hibernate**
+- **PostgreSQL**
+- **HTML / CSS / JavaScript**
+- **Maven**
+- **Docker**
+- **Docker Compose**
 
--   User authentication and authorization
--   Custom aliases
--   Click analytics
--   Country, browser, device, and referrer tracking
--   Link expiration
--   Link deactivation
--   Redis/in-memory caching
--   Asynchronous click processing
+## Architecture
 
-## How It Works
+ShortLink follows a simple layered architecture:
 
-``` text
-                    User
-                     |
-                     v
-                 Frontend
-                     |
-                     | POST /api/urls
-                     v
-                Controller
-                     |
-                     v
-                  Service
-                     |
-                     | validate + generate code
-                     v
-                Repository
-                     |
-                     v
-                PostgreSQL
-```
-
-For a redirect:
-
-``` text
-User opens /aX7kP2
+```text
+Client / Frontend
        |
        v
    Controller
@@ -75,34 +46,67 @@ User opens /aX7kP2
        |
        v
    PostgreSQL
-       |
-       v
+```
+
+### Create URL
+
+```text
+User enters long URL
+        |
+        v
+POST /api/urls
+        |
+        v
+Controller
+        |
+        v
+Service
+  |     |
+  |     +--> Validate URL
+  |
+  +--------> Generate random code
+        |
+        v
+Repository
+        |
+        v
+PostgreSQL
+        |
+        v
+Short URL returned
+```
+
+### Redirect
+
+```text
+User opens short URL
+        |
+        v
+GET /{code}
+        |
+        v
+Controller
+        |
+        v
+Service
+        |
+        v
+Repository
+        |
+        v
+PostgreSQL
+        |
+        v
 Original URL
-       |
-       v
+        |
+        v
 HTTP 302 Redirect
 ```
 
-## Technology Stack
-
-Technology            Purpose
-  --------------------- -------------------------------------------
-Java 25               Programming language
-Spring Boot 4.1       Backend framework
-Spring Web MVC        REST APIs and HTTP handling
-Spring Data JPA       Database access
-Hibernate             ORM implementation
-PostgreSQL            Relational database
-HTML/CSS/JavaScript   Frontend
-Maven                 Build and dependency management
-Docker                Containerization
-Docker Compose        Running application and database together
-
 ## Project Structure
 
-``` text
+```text
 ShortLink/
-│
 ├── src/
 │   └── main/
 │       ├── java/
@@ -129,54 +133,27 @@ ShortLink/
 └── README.md
 ```
 
-## Database
+## API Documentation
 
-The application uses a single table:
+### Create Short URL
 
-``` text
-short_links
+**Endpoint**
+
+```http
+POST /api/urls
 ```
 
-with the main fields:
+**Request**
 
-Field            Description
-  ---------------- -------------------------------------
-`code`           Unique short URL code
-`original_url`   Original long URL
-`created_at`     Time when the short URL was created
-
-The `code` is used as the primary key.
-
-Example:
-
-``` text
-code    original_url                         created_at
----------------------------------------------------------------
-aX7kP2  https://www.example.com/products/...  2026-09-17...
-9LmQ4z  https://github.com/                   2026-09-17...
-```
-
-## API
-
-### 1. Create a Short URL
-
-**POST**
-
-``` text
-/api/urls
-```
-
-Request:
-
-``` json
+```json
 {
   "url": "https://www.google.com"
 }
 ```
 
-Example response:
+**Example Response**
 
-``` json
+```json
 {
   "code": "aX7kP2",
   "shortPath": "/aX7kP2",
@@ -184,195 +161,118 @@ Example response:
 }
 ```
 
-The generated code is random and uses Base62 characters:
+The generated code can then be used as:
 
-``` text
+```text
+http://localhost:8080/aX7kP2
+```
+
+### Redirect to Original URL
+
+**Endpoint**
+
+```http
+GET /{code}
+```
+
+**Example**
+
+```text
+GET /aX7kP2
+```
+
+The application finds the corresponding URL in PostgreSQL and redirects the user to the original destination.
+
+## Short Code Generation
+
+ShortLink uses a random 6-character **Base62** code.
+
+Base62 contains:
+
+```text
 0-9
 a-z
 A-Z
 ```
 
-### 2. Redirect
+Example generated codes:
 
-**GET**
-
-``` text
-/{code}
-```
-
-Example:
-
-``` text
-http://localhost:8080/aX7kP2
-```
-
-The application looks up `aX7kP2` in PostgreSQL and returns an HTTP
-`302 Found` response pointing to the original URL.
-
-## URL Validation
-
-Only valid HTTP and HTTPS URLs are accepted.
-
-Valid examples:
-
-``` text
-https://www.google.com
-https://github.com/Pratik23-10/ShortLink
-http://example.com
-```
-
-Invalid examples:
-
-``` text
-google.com
-hello
-abc
-```
-
-Invalid URLs return:
-
-``` text
-400 Bad Request
-```
-
-## Random Short-Code Generation
-
-The application generates a random 6-character Base62 code.
-
-Example:
-
-``` text
+```text
 aX7kP2
 9LmQ4z
 K8v2Ra
 pT6xW1
 ```
 
-Before saving the link, the application checks whether the generated
-code already exists:
+Before saving a generated code, the application checks whether the code already exists in the database. If it does, another code is generated.
 
-``` text
-Generate code
-     |
-     v
-Does code exist?
-   /       \
- Yes        No
-  |          |
-Generate     Save
-again
+## Database
+
+The application uses PostgreSQL to store URL mappings.
+
+The main data fields are:
+
+| Field | Description |
+|---|---|
+| `code` | Unique short code |
+| `original_url` | Original URL |
+| `created_at` | Creation timestamp |
+
+Example:
+
+| code | original_url |
+|---|---|
+| `aX7kP2` | `https://www.google.com` |
+| `9LmQ4z` | `https://github.com` |
+
+## URL Validation
+
+ShortLink accepts valid HTTP and HTTPS URLs.
+
+Valid:
+
+```text
+https://www.google.com
+https://github.com
+http://example.com
 ```
 
-This prevents short-code collisions.
+Invalid:
 
-## Local Setup
+```text
+google.com
+hello
+abc
+```
 
-### Requirements
+Invalid requests are rejected instead of being stored.
+
+## Running Locally
+
+### Prerequisites
 
 Install:
 
--   Java 25
--   PostgreSQL
--   Git
--   Docker Desktop (optional)
+- Java
+- PostgreSQL
+- Git
+- Docker Desktop (optional)
 
-You can use the included Maven Wrapper, so Maven does not need to be
-installed separately.
+The project includes the Maven Wrapper, so Maven does not need to be installed separately.
 
-### 1. Create PostgreSQL Database
+### 1. Create the Database
 
-Create a database named:
+Create a PostgreSQL database:
 
-``` sql
+```sql
 CREATE DATABASE demo;
 ```
 
-The local configuration uses:
+### 2. Configure Database Environment Variables
 
-``` text
-Host:     localhost
-Port:     5432
-Database: demo
-Username: postgres
-```
+The application uses:
 
-The password should be supplied through the `DB_PASSWORD` environment
-variable.
-
-### 2. Configure Environment Variable
-
-Windows PowerShell:
-
-``` powershell
-$env:DB_PASSWORD="your_password"
-```
-
-Or configure `DB_PASSWORD` in your IntelliJ Run Configuration.
-
-Do not put the real database password into Git.
-
-### 3. Run the Application
-
-Windows:
-
-``` powershell
-.\mvnw.cmd spring-boot:run
-```
-
-macOS/Linux:
-
-``` bash
-./mvnw spring-boot:run
-```
-
-Open:
-
-``` text
-http://localhost:8080
-```
-
-## Running with Docker
-
-The project can also be run using Docker Compose.
-
-Make sure Docker Desktop is running.
-
-Create a local `.env` file in the project root:
-
-``` env
-DB_PASSWORD=your_password
-```
-
-Make sure `.env` is included in `.gitignore`.
-
-Then run:
-
-``` powershell
-docker compose up --build
-```
-
-The application will be available at:
-
-``` text
-http://localhost:8080
-```
-
-When Spring Boot runs inside Docker and PostgreSQL is another Compose
-service, the database hostname should be the Compose service name, for
-example:
-
-``` text
-jdbc:postgresql://postgres:5432/dbs
-```
-
-Do not use `localhost` for the PostgreSQL hostname from inside the
-Spring Boot container.
-
-## Environment Variables
-
-The application can use the following variables:
-
-``` text
+```text
 DB_URL
 DB_USERNAME
 DB_PASSWORD
@@ -380,127 +280,131 @@ DB_PASSWORD
 
 Example:
 
-``` text
+```text
+DB_URL=jdbc:postgresql://localhost:5432/demo
+DB_USERNAME=postgres
+DB_PASSWORD=your_password
+```
+
+Keep the actual password outside the source code.
+
+### 3. Run the Application
+
+On Windows:
+
+```powershell
+.\mvnw.cmd spring-boot:run
+```
+
+On macOS/Linux:
+
+```bash
+./mvnw spring-boot:run
+```
+
+Open:
+
+```text
+http://localhost:8080
+```
+
+## Running with Docker
+
+Make sure Docker Desktop is running.
+
+Create a local `.env` file in the project root:
+
+```env
+DB_PASSWORD=your_password
+```
+
+Do **not** commit `.env` to GitHub.
+
+Then run:
+
+```bash
+docker compose up --build
+```
+
+The application will be available at:
+
+```text
+http://localhost:8080
+```
+
+When Spring Boot and PostgreSQL are running as Docker Compose services, the database hostname should be the Compose service name:
+
+```text
+jdbc:postgresql://postgres:5432/dbs
+```
+
+rather than `localhost`.
+
+## Environment Variables
+
+Keep database credentials outside the source code.
+
+Example:
+
+```text
 DB_URL=jdbc:postgresql://postgres:5432/dbs
 DB_USERNAME=pratik
 DB_PASSWORD=your_password
 ```
 
-Keep credentials outside the source code.
+For local development, these values can be supplied through your operating-system environment variables, IntelliJ Run Configuration, or Docker Compose.
 
-## Testing the API
+## GitHub
 
-Using PowerShell:
+The project is designed to be version controlled with Git.
 
-``` powershell
-Invoke-RestMethod `
-  -Method Post `
-  -Uri "http://localhost:8080/api/urls" `
-  -ContentType "application/json" `
-  -Body '{"url":"https://www.google.com"}'
-```
+Typical workflow:
 
-Or use Postman.
-
-Then open the returned short URL in your browser.
-
-## Git and GitHub
-
-Typical development workflow:
-
-``` text
+```bash
 git pull
-       |
-       v
-Create feature branch
-       |
-       v
-Write code
-       |
-       v
-Test
-       |
-       v
+
+git checkout -b feature/my-feature
+
+# Make changes and test
+
 git status
-       |
-       v
-git add
-       |
-       v
-git commit
-       |
-       v
-git push
-```
-
-Example:
-
-``` bash
-git checkout -b feature/random-short-code
-
 git add .
-
-git commit -m "Generate random Base62 short codes"
-
-git push -u origin feature/random-short-code
+git commit -m "Describe the change"
+git push -u origin feature/my-feature
 ```
+
+Before pushing, make sure sensitive files such as `.env` are ignored.
 
 ## Security
 
-Spring Security is intentionally not included in this version.
+Authentication and authorization are intentionally not part of the current version.
 
-This project is currently designed for learning the fundamentals of:
-
--   REST APIs
--   Spring Boot
--   Dependency Injection
--   Service and Repository layers
--   JPA/Hibernate
--   PostgreSQL
--   HTTP redirects
--   Docker
--   Git/GitHub
-
-Authentication and authorization can be added later.
+The current application focuses on the core URL-shortening functionality. User authentication and other security features can be introduced in a future version.
 
 ## Future Improvements
 
-Possible future versions:
+Planned or possible improvements include:
 
-### Version 2
+- User registration and login
+- Spring Security
+- JWT authentication
+- Custom aliases
+- URL expiration
+- Link deactivation
+- Click analytics
+- Browser and device analytics
+- Referrer tracking
+- Redis caching
+- Rate limiting
+- Improved API documentation with Swagger / OpenAPI
 
--   Better request validation
--   Global exception handling
--   Improved API responses
+## Learning Goals
 
-### Version 3
+This project is also designed as a practical Spring Boot learning project.
 
--   Redis caching
+The main backend flow is:
 
-### Version 4
-
--   Spring Security
--   User accounts
--   User-owned URLs
-
-### Version 5
-
--   Click analytics
--   Click events
--   Browser/device/referrer information
-
-### Version 6
-
--   Link expiration
--   Link deactivation
--   Custom aliases
-
-## Learning Goal
-
-The main goal of this project is to understand the complete Spring Boot
-request flow:
-
-``` text
+```text
 HTTP Request
      |
      v
@@ -522,15 +426,10 @@ PostgreSQL
 HTTP Response
 ```
 
-Once this flow is understood, additional features such as
-authentication, caching, analytics, and expiration can be added one at a
-time.
+The project demonstrates how a Spring Boot application can receive an HTTP request, process business logic, communicate with a database, and return an HTTP response.
 
 ## Author
 
 **Pratik Yadav**
 
-Built as a learning project while learning Java, Spring Boot,
-PostgreSQL, Docker, and Git/GitHub.
-h t t p s : / / g i t h u b . c o m / P r a t i k 2 3 - 1 0 / S h o r t U r l . g i t  
- 
+Built as a practical project while learning Java, Spring Boot, PostgreSQL, Docker, and Git/GitHub.
