@@ -1,0 +1,26 @@
+version: "3.8"
+services:
+  app:
+    build: .
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgres
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/shorturl
+      SPRING_DATASOURCE_USERNAME: shorturl
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASS}
+
+  postgres:
+    image: postgres:latest
+    volumes:
+      - short-data:/var/lib/postgresql/18/docker
+    container_name: Short-urldd
+    environment:
+      POSTGRES_DB: shorturl
+      POSTGRES_USER: shorturl
+      POSTGRES_PASSWORD: ${DB_PASS}
+    ports:
+      - "5432:5432"
+volumes:
+  short-data:

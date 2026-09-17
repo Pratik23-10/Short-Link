@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Shortlist | URL shortener</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Space+Grotesk:wght@400;600;700&display=swap');
+
+    :root {
+      --ink: #16221f;
+      --paper: #f3f1e8;
+      --lime: #c9f36b;
+      --orange: #ff795c;
+      --line: #b9beb0;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: 'Space Grotesk', sans-serif;
+    }
+
+    main {
+      max-width: 1080px;
+      margin: auto;
+      padding: 40px 24px 72px;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--line);
+      padding-bottom: 18px;
+    }
+
+    .mark {
+      font-weight: 700;
+      letter-spacing: -1px;
+      font-size: 24px;
+    }
+
+    .mark span {
+      color: var(--orange);
+    }
+
+    .tag {
+      font: 12px 'DM Mono', monospace;
+      text-transform: uppercase;
+    }
+
+    .hero {
+      padding: 72px 0 42px;
+      max-width: 780px;
+    }
+
+    h1 {
+      font-size: clamp(44px, 8vw, 92px);
+      line-height: .92;
+      letter-spacing: -5px;
+      margin: 0 0 28px;
+    }
+
+    h1 em {
+      color: var(--orange);
+      font-style: normal;
+    }
+
+    .hero p {
+      font: 16px 'DM Mono', monospace;
+      max-width: 560px;
+      line-height: 1.6;
+    }
+
+    .panel {
+      border: 1px solid var(--ink);
+      padding: 24px;
+      background: #fffef9;
+      box-shadow: 8px 8px 0 var(--lime);
+    }
+
+    form {
+      display: grid;
+      grid-template-columns:1fr auto;
+      gap: 10px;
+    }
+
+    input, button {
+      border: 1px solid var(--ink);
+      padding: 14px;
+      font: 14px 'DM Mono', monospace;
+      background: transparent;
+    }
+
+    button {
+      background: var(--ink);
+      color: white;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: var(--orange);
+    }
+
+    #result {
+      margin-top: 18px;
+      font: 14px 'DM Mono', monospace;
+      white-space: pre-wrap;
+      line-height: 1.8;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns:1fr 1fr;
+      gap: 24px;
+      margin-top: 48px;
+    }
+
+    h2 {
+      font-size: 20px;
+      margin-top: 0;
+    }
+
+    .metric {
+      font-size: 48px;
+      font-weight: 700;
+    }
+
+    .note {
+      font: 14px 'DM Mono', monospace;
+      line-height: 1.8;
+    }
+
+    .error {
+      color: var(--orange);
+    }
+
+    a {
+      color: var(--ink);
+    }
+
+    @media (max-width: 760px) {
+      form, .grid {
+        grid-template-columns:1fr;
+      }
+
+      h1 {
+        letter-spacing: -3px;
+      }
+
+      header {
+        align-items: flex-start;
+        gap: 12px;
+        flex-direction: column;
+      }
+    }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <div class="mark">short<span>list</span></div>
+    <div class="tag">simple url shortener / v1</div>
+  </header>
+  <section class="hero"><h1>Make links.<br><em>Keep it simple.</em></h1>
+    <p>Enter a long URL, get a short link, and redirect through your Spring Boot application.</p></section>
+  <section class="panel">
+    <form id="create">
+      <input id="url" type="url" placeholder="https://your-long-url.com" required>
+      <button>SHORTEN ↗</button>
+    </form>
+    <div id="result"></div>
+  </section>
+  <section class="grid">
+    <div class="panel"><h2>Simple & Fast</h2>
+      <div class="metric">Shorter URLs</div>
+      <p class="note"> Turn long, difficult-to-share URLs into clean and memorable links in seconds. </p></div>
+
+    <div class="panel"><h2>Easy to Use</h2>
+      <div class="metric">One Click</div>
+      <p class="note"> Create your short link and share it anywhere. Anyone who opens it is automatically redirected to
+        the original website. </p></div>
+  </section>
+</main>
+<script>
+$('create').onsubmit = async e => {
+  e.preventDefault();
+  const result = $('result');
+  result.className = '';
+  result.textContent = 'Creating...';
+  try {
+    const r = await fetch('/api/urls', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({url: $('url').value})
+    });
+    const d = await r.json();
+    if (!r.ok) {
+      result.className = 'error';
+      result.textContent = d.error || 'Something went wrong';
+      return;
+    }
+    const shortUrl = location.origin + d.shortPath;
+    result.innerHTML = `Short URL: <a href="${shortUrl}" target="_blank" rel="noopener">${shortUrl}</a>\nOriginal: ${d.url}`;
+  } catch (err) {
+    result.className = 'error';
+    result.textContent = 'Could not connect to the server.';
+  }
+};
+
+function $(id) { return document.getElementById(id); }
+</script></body></html>
